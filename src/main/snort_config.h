@@ -99,6 +99,8 @@ enum OutputFlag
     OUTPUT_FLAG__WIDE_HEX          = 0x00000800,
 
     OUTPUT_FLAG__ALERT_REFS        = 0x00001000,
+
+    OUTPUT_FLAG__ONELINE          = 0x00002000,
 };
 
 enum LoggingFlag
@@ -583,6 +585,9 @@ public:
     bool alert_refs() const
     { return output_flags & OUTPUT_FLAG__ALERT_REFS; }
 
+    bool oneline() const
+    { return output_flags & OUTPUT_FLAG__ONELINE; }
+
     // run flags
     bool no_lock_pid_file() const
     { return run_flags & RUN_FLAG__NO_LOCK_PID_FILE; }
@@ -703,7 +708,7 @@ public:
     { return logging_flags & LOGGING_FLAG__SYSLOG; }
 
     static void set_log_quiet(bool enabled)
-    { 
+    {
         if (enabled)
             logging_flags |= LOGGING_FLAG__QUIET;
         else

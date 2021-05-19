@@ -228,7 +228,7 @@ void FastLogger::alert(Packet* p, const char* msg, const Event& event)
         event.sig_info->gid, event.sig_info->sid, event.sig_info->rev);
 
     if (p->context->conf->alert_interface())
-        TextLog_Print(fast_log, " <%s> ", SFDAQ::get_input_spec());
+        TextLog_Print(fast_log, "<%s> ", SFDAQ::get_input_spec());
 
     if ( msg )
         TextLog_Puts(fast_log, msg);
@@ -257,7 +257,11 @@ void FastLogger::log_data(Packet* p, const Event& event)
 {
     bool log_pkt = true;
 
-    TextLog_NewLine(fast_log);
+    if (p->context->conf->oneline())
+        TextLog_Putc(fast_log, ' ');
+    else
+        TextLog_NewLine(fast_log);
+
     const char* ins_name = "snort";
     Inspector* gadget = nullptr;
     if ( p->flow and p->flow->session )
@@ -367,4 +371,3 @@ const BaseApi* alert_fast[] =
     &fast_api.base,
     nullptr
 };
-

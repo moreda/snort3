@@ -1007,4 +1007,3 @@ void SnortConfig::cleanup_fatal_error()
     }
 #endif
 }
-

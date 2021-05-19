@@ -159,7 +159,7 @@ void FullLogger::alert(Packet* p, const char* msg, const Event& event)
     if (p->context->conf->alert_interface())
     {
         const char* iface = SFDAQ::get_input_spec();
-        TextLog_Print(full_log, " <%s> ", iface);
+        TextLog_Print(full_log, "<%s> ", iface);
     }
 
     if (msg != nullptr)
@@ -265,4 +265,3 @@ const BaseApi* alert_full[] =
     &full_api.base,
     nullptr
 };
-

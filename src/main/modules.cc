@@ -743,6 +743,9 @@ static const Parameter output_params[] =
 #endif
       "output 20 bytes per lines instead of 16 when dumping buffers" },
 
+    { "oneline", Parameter::PT_BOOL, nullptr, "false",
+      "condense in one line even when including packet data" },
+
     { nullptr, Parameter::PT_MAX, nullptr, nullptr, nullptr }
 };
 
@@ -798,6 +801,9 @@ bool OutputModule::set(const char*, Value& v, SnortConfig* sc)
 
     else if ( v.is("obfuscate") )
         v.update_mask(sc->output_flags, OUTPUT_FLAG__OBFUSCATE);
+
+    else if ( v.is("oneline") )
+        v.update_mask(sc->output_flags, OUTPUT_FLAG__ONELINE);
 
     else
         return false;

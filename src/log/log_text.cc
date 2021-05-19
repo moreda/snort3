@@ -120,13 +120,13 @@ static void LogEthHeader(TextLog* log, Packet* p)
     LogEthAddrs(log, eh);
 
     /* protocol and pkt size */
-    TextLog_Print(log, " type:0x%X len:0x%X\n", ntohs(eh->ether_type),
+    TextLog_Print(log, p->context->conf->oneline() ? " type:0x%X len:0x%X " : " type:0x%X len:0x%X\n", ntohs(eh->ether_type),
         p->pkth->pktlen);
 }
 
 static void LogMPLSHeader(TextLog* log, Packet* p)
 {
-    TextLog_Print(log,"label:0x%05X tc:0x%X bos:0x%X ttl:0x%X\n",
+    TextLog_Print(log, p->context->conf->oneline() ? "label:0x%05X tc:0x%X bos:0x%X ttl:0x%X " : "label:0x%05X tc:0x%X bos:0x%X ttl:0x%X\n",
         p->ptrs.mplsHdr.label, p->ptrs.mplsHdr.tc, p->ptrs.mplsHdr.bos, p->ptrs.mplsHdr.ttl);
 }
 
@@ -137,7 +137,7 @@ static void LogGREHeader(TextLog* log, Packet* p)
     if (greh == nullptr)
         return;
 
-    TextLog_Print(log, "GRE version:%u flags:0x%02X ether-type:0x%04X\n",
+    TextLog_Print(log, p->context->conf->oneline() ? "GRE version:%u flags:0x%02X ether-type:0x%04X " : "GRE version:%u flags:0x%02X ether-type:0x%04X\n",
         greh->get_version(), greh->flags, static_cast<uint16_t>(greh->proto()));
 }
 
@@ -240,7 +240,6 @@ static void LogIpOptions(TextLog* log, const ip::IpOptionIterator& options)
             break;
         }
     }
-    TextLog_NewLine(log);
 }
 
 void LogIpOptions(TextLog* log, const ip::IP4Hdr* ip4h, uint16_t valid_ip4_len)
@@ -321,14 +320,10 @@ void LogIPHeader(TextLog* log, Packet* p)
 
     LogIpAddrs(log, p);
 
-    if (!p->context->conf->output_datalink())
-    {
+    if (!p->context->conf->output_datalink() && !p->context->conf->oneline())
         TextLog_NewLine(log);
-    }
     else
-    {
         TextLog_Putc(log, ' ');
-    }
 
     // ip_api will return nullptr
     const bool is_ip6 = p->ptrs.ip_api.is_ip6();
@@ -389,19 +384,26 @@ void LogIPHeader(TextLog* log, Packet* p)
         frag_off = ip4h->off();
     }
 
-    TextLog_NewLine(log);
+    if (p->context->conf->oneline())
+        TextLog_Putc(log, ' ');
+    else
+        TextLog_NewLine(log);
 
     /* print IP options */
     if (!is_ip6)
     {
         if (ip4h->has_options())
             LogIpOptions(log, ip4h, p);
-    }
+        if (p->context->conf->oneline())
+            TextLog_Putc(log, ' ');
+        else
+            TextLog_NewLine(log);
+        }
 
     /* print fragment info if necessary */
     if ( p->is_fragment() )
     {
-        TextLog_Print(log, "Frag Offset: 0x%04X   Frag Size: 0x%04X\n",
+        TextLog_Print(log, p->context->conf->oneline() ? "Frag Offset: 0x%04X   Frag Size: 0x%04X " : "Frag Offset: 0x%04X   Frag Size: 0x%04X\n",
             frag_off, p->ptrs.ip_api.pay_len());
     }
 }
@@ -597,14 +599,20 @@ void LogTCPHeader(TextLog* log, Packet* p)
     }
     else
     {
-        TextLog_NewLine(log);
+        if (p->context->conf->oneline())
+            TextLog_Putc(log, ' ');
+        else
+            TextLog_NewLine(log);
     }
 
     /* dump the TCP options */
     if (tcph->has_options())
     {
         LogTcpOptions(log, p);
-        TextLog_NewLine(log);
+        if (p->context->conf->oneline())
+            TextLog_Putc(log, ' ');
+        else
+            TextLog_NewLine(log);
     }
 }
 
@@ -620,11 +628,11 @@ void LogUDPHeader(TextLog* log, Packet* p)
 {
     if (p->ptrs.udph == nullptr)
     {
-        TextLog_Print(log, "UDP header truncated\n");
+        TextLog_Print(log, p->context->conf->oneline() ? "UDP header truncated " : "UDP header truncated\n");
         return;
     }
     /* not much to do here... */
-    TextLog_Print(log, "Len: %d\n", ntohs(p->ptrs.udph->uh_len) - udp::UDP_HEADER_LEN);
+    TextLog_Print(log, p->context->conf->oneline() ? "Len: %d " : "Len: %d\n", ntohs(p->ptrs.udph->uh_len) - udp::UDP_HEADER_LEN);
 }
 
 /*--------------------------------------------------------------------
@@ -681,8 +689,6 @@ static void LogEmbeddedICMPHeader(TextLog* log, const ICMPHdr* icmph)
     default:
         break;
     }
-
-    TextLog_NewLine(log);
 }
 
 /*--------------------------------------------------------------------
@@ -698,7 +704,7 @@ static void LogICMPEmbeddedIP(TextLog* log, Packet* p)
 
     if (!layer::set_api_ip_embed_icmp(p, orig->ptrs.ip_api))
     {
-        TextLog_Puts(log, "\nORIGINAL DATAGRAM TRUNCATED");
+        TextLog_Puts(log, p->context->conf->oneline() ? " ORIGINAL DATAGRAM TRUNCATED" : "\nORIGINAL DATAGRAM TRUNCATED");
     }
     else
     {
@@ -714,9 +720,9 @@ static void LogICMPEmbeddedIP(TextLog* log, Packet* p)
                 orig->ptrs.tcph = tcph;
                 orig->ptrs.set_pkt_type(PktType::TCP);
 
-                TextLog_Print(log, "\n** ORIGINAL DATAGRAM DUMP:\n");
+                TextLog_Print(log, p->context->conf->oneline() ? " ** ORIGINAL DATAGRAM DUMP: " : "\n** ORIGINAL DATAGRAM DUMP:\n");
                 LogIPHeader(log, orig);
-                TextLog_Print(log, "Seq: 0x%lX\n", (u_long)ntohl(orig->ptrs.tcph->th_seq));
+                TextLog_Print(log, "Seq: 0x%lX" + p->context->conf->oneline() ? " " : "\n", (u_long)ntohl(orig->ptrs.tcph->th_seq));
             }
             break;
         }
@@ -731,29 +737,34 @@ static void LogICMPEmbeddedIP(TextLog* log, Packet* p)
                 orig->ptrs.udph = udph;
                 orig->ptrs.set_pkt_type(PktType::UDP);
 
-                TextLog_Print(log, "\n** ORIGINAL DATAGRAM DUMP:\n");
+                TextLog_Print(log, p->context->conf->oneline() ? " ** ORIGINAL DATAGRAM DUMP: " : "\n** ORIGINAL DATAGRAM DUMP:\n");
                 LogIPHeader(log, orig);
                 TextLog_Print(
-                    log, "Len: %d  Csum: %d\n", udph->len() - udp::UDP_HEADER_LEN, udph->cksum());
+                    log, p->context->conf->oneline() ? "Len: %d  Csum: %d "  : "Len: %d  Csum: %d\n", udph->len() - udp::UDP_HEADER_LEN, udph->cksum());
             }
             break;
         }
 
         case PROTO_BIT__ICMP_EMBED_ICMP:
         {
-            TextLog_Print(log, "\n** ORIGINAL DATAGRAM DUMP:\n");
+            TextLog_Print(log, p->context->conf->oneline() ? " ** ORIGINAL DATAGRAM DUMP: " : "\n** ORIGINAL DATAGRAM DUMP:\n");
             LogIPHeader(log, orig);
 
             const icmp::ICMPHdr* icmph = layer::get_icmp_embed_icmp(orig->ptrs.ip_api);
 
-            if (icmph)
+            if (icmph) {
                 LogEmbeddedICMPHeader(log, icmph);
+                if (p->context->conf->oneline())
+                    TextLog_Putc(log, ' ');
+                else
+                    TextLog_NewLine(log);
+            }
             break;
         }
 
         default:
         {
-            TextLog_Print(log, "\n** ORIGINAL DATAGRAM DUMP:\n");
+            TextLog_Print(log, p->context->conf->oneline() ? " ** ORIGINAL DATAGRAM DUMP: " : "\n** ORIGINAL DATAGRAM DUMP:\n");
             LogIPHeader(log, orig);
 
             TextLog_Print(log, "Protocol: 0x%X (unknown or "
@@ -766,7 +777,7 @@ static void LogICMPEmbeddedIP(TextLog* log, Packet* p)
         const int16_t more_bytes = p->dsize - 8;
 
         if (more_bytes > 0)
-            TextLog_Print(log, "(%d more bytes of original packet)\n", more_bytes);
+            TextLog_Print(log, p->context->conf->oneline() ? "(%d more bytes of original packet) " : "(%d more bytes of original packet)\n", more_bytes);
 
         TextLog_Puts(log, "** END OF DUMP");
     }
@@ -783,7 +794,7 @@ void LogICMPHeader(TextLog* log, Packet* p)
 
     if (p->ptrs.icmph == nullptr)
     {
-        TextLog_Puts(log, "ICMP header truncated\n");
+        TextLog_Puts(log, p->context->conf->oneline() ? "ICMP header truncated " : "ICMP header truncated\n");
         return;
     }
 
@@ -818,8 +829,7 @@ void LogICMPHeader(TextLog* log, Packet* p)
             break;
 
         case ICMP_FRAG_NEEDED:
-            TextLog_Print(log, "FRAGMENTATION NEEDED, DF SET\n"
-                "NEXT LINK MTU: %u",
+            TextLog_Print(log, p->context->conf->oneline() ? "FRAGMENTATION NEEDED, DF SET NEXT LINK MTU: %u" : "FRAGMENTATION NEEDED, DF SET\nNEXT LINK MTU: %u",
                 ntohs(p->ptrs.icmph->s_icmp_nextmtu));
             break;
 
@@ -981,8 +991,7 @@ void LogICMPHeader(TextLog* log, Packet* p)
         break;
 
     case ICMP_TIMESTAMPREPLY:
-        TextLog_Print(log, "ID: %u  Seq: %u  TIMESTAMP REPLY:\n"
-            "Orig: %u Rtime: %u  Ttime: %u",
+        TextLog_Print(log, p->context->conf->oneline() ? "ID: %u  Seq: %u  TIMESTAMP REPLY: Orig: %u Rtime: %u  Ttime: %u" : "ID: %u  Seq: %u  TIMESTAMP REPLY:\nOrig: %u Rtime: %u  Ttime: %u",
             ntohs(p->ptrs.icmph->s_icmp_id), ntohs(p->ptrs.icmph->s_icmp_seq),
             p->ptrs.icmph->s_icmp_otime, p->ptrs.icmph->s_icmp_rtime,
             p->ptrs.icmph->s_icmp_ttime);
@@ -1014,7 +1023,10 @@ void LogICMPHeader(TextLog* log, Packet* p)
         break;
     }
 
-    TextLog_NewLine(log);
+    if (p->context->conf->oneline())
+        TextLog_Putc(log, ' ');
+    else
+        TextLog_NewLine(log);
 }
 
 /*--------------------------------------------------------------------
@@ -1045,7 +1057,7 @@ void LogXrefs(TextLog* log, const Event& e)
  * dump the printable ASCII data from a packet
  *--------------------------------------------------------------------
  */
-static void LogCharData(TextLog* log, const uint8_t* data, int len)
+static void LogCharData(TextLog* log, const uint8_t* data, int len, bool oneline)
 {
     if ( !data )
         return;
@@ -1068,14 +1080,20 @@ static void LogCharData(TextLog* log, const uint8_t* data, int len)
         if ( ++lineCount == 64 )
         {
             TextLog_Putc(log, ' ');
-            TextLog_NewLine(log);
+            if (oneline)
+                TextLog_Putc(log, ' ');
+            else
+                TextLog_NewLine(log);
             lineCount = 0;
         }
         pb++;
     }
     /* slam a \n on the back */
     TextLog_Putc(log, ' ');
-    TextLog_NewLine(log);
+    if (oneline)
+        TextLog_Putc(log, ' ');
+    else
+        TextLog_NewLine(log);
     TextLog_Putc(log, ' ');
 }
 
@@ -1172,61 +1190,94 @@ void LogNetData(
     if ( !ins_name )
         ins_name = p->flow and p->flow->gadget ?  p->flow->gadget->get_name() : "snort";
 
-    TextLog_Print(log, "\n%s.%s[%u]:\n", ins_name, buf_name, len);
-    TextLog_Print(log, "%s%s\n", hdr_off, hal.separator);
-
     const uint8_t* pb = data;
-    const uint8_t* end = data + len;
 
-    int offset = 0;
-
-    /* loop thru the whole buffer */
-    while ( pb < end )
+    if ( p->context->conf->oneline() )
     {
-        if (p->context->conf->verbose_byte_dump())
-        {
-            TextLog_Print(log, hal.offset_fmt, offset);
-            offset += hal.bytes_per_frame;
-        }
-        int byte_pos = 0;
+        TextLog_Print(log, " %s.%s[%u]: ", ins_name, buf_name, len);
+
         unsigned i;
 
-        /* process one frame first print the binary as ascii hex */
-        for (i = 0; i < hal.bytes_per_frame && pb+i < end; i++, byte_pos++)
+        /* print ascii */
+        for (i = 0; i < len; i++)
         {
-            if ((byte_pos >= ip_ob_start) && (byte_pos < ip_ob_end))
-                TextLog_Quote(log, "XX ");
-            else
-                TextLog_Print(log, "%2.2X ", pb[i]);
-
-            if ( i == hal.frame_break )
-                TextLog_Putc(log, ' ');
-        }
-        int char_pos = 0;
-
-        /* print ' ' past end of packet and before ascii */
-        unsigned fb = (0 < i and i < hal.frame_break) ? 1 : 0;
-        TextLog_Puts(log, hal.padding+(3*i)-fb);
-
-        /* then print the actual ascii chars or a '.' for control chars */
-        for (unsigned j = 0; j < hal.bytes_per_frame && pb+j < end; j++, char_pos++)
-        {
-            if ((char_pos >= ip_ob_start) && (char_pos < ip_ob_end))
-                TextLog_Putc(log, 'X');
+            if ((i >= ip_ob_start) && (i < ip_ob_end))
+                TextLog_Quote(log, "X");
             else
             {
-                if ( 0x1F < pb[j] and pb[j] < 0x7F)
-                    TextLog_Putc(log, pb[j]);
+                if ( 0x1F < pb[i] and pb[i] < 0x7F)
+                    TextLog_Putc(log, pb[i]);
                 else
                     TextLog_Putc(log, '.');
             }
-            if ( j == hal.frame_break and hal.break_text )
-                TextLog_Putc(log, ' ');
         }
-        pb += hal.bytes_per_frame;
-        TextLog_NewLine(log);
+        TextLog_Putc(log, ' ');
+        /* print hex */
+        for (i = 0; i < len; i++)
+        {
+            if ((i >= ip_ob_start) && (i < ip_ob_end))
+                TextLog_Quote(log, "XX");
+            else
+                TextLog_Print(log, "%2.2X", pb[i]);
+        }
     }
-    TextLog_Print(log, "%s%s\n", hdr_off, hal.separator);
+    else
+    {
+        TextLog_Print(log, "\n%s.%s[%u]:\n", ins_name, buf_name, len);
+        TextLog_Print(log, "%s%s\n", hdr_off, hal.separator);
+
+        const uint8_t* end = data + len;
+
+        int offset = 0;
+
+        /* loop thru the whole buffer */
+        while ( pb < end )
+        {
+            if (p->context->conf->verbose_byte_dump())
+            {
+                TextLog_Print(log, hal.offset_fmt, offset);
+                offset += hal.bytes_per_frame;
+            }
+            int byte_pos = 0;
+            unsigned i;
+
+            /* process one frame first print the binary as ascii hex */
+            for (i = 0; i < hal.bytes_per_frame && pb+i < end; i++, byte_pos++)
+            {
+                if ((byte_pos >= ip_ob_start) && (byte_pos < ip_ob_end))
+                    TextLog_Quote(log, "XX ");
+                else
+                    TextLog_Print(log, "%2.2X ", pb[i]);
+
+                if ( i == hal.frame_break )
+                    TextLog_Putc(log, ' ');
+            }
+            int char_pos = 0;
+
+            /* print ' ' past end of packet and before ascii */
+            unsigned fb = (0 < i and i < hal.frame_break) ? 1 : 0;
+            TextLog_Puts(log, hal.padding+(3*i)-fb);
+
+            /* then print the actual ascii chars or a '.' for control chars */
+            for (unsigned j = 0; j < hal.bytes_per_frame && pb+j < end; j++, char_pos++)
+            {
+                if ((char_pos >= ip_ob_start) && (char_pos < ip_ob_end))
+                    TextLog_Putc(log, 'X');
+                else
+                {
+                    if ( 0x1F < pb[j] and pb[j] < 0x7F)
+                        TextLog_Putc(log, pb[j]);
+                    else
+                        TextLog_Putc(log, '.');
+                }
+                if ( j == hal.frame_break and hal.break_text )
+                    TextLog_Putc(log, ' ');
+            }
+            pb += hal.bytes_per_frame;
+            TextLog_NewLine(log);
+        }
+        TextLog_Print(log, "%s%s\n", hdr_off, hal.separator);
+    }
 }
 
 /*--------------------------------------------------------------------
@@ -1317,14 +1368,14 @@ void LogPayload(TextLog* log, Packet* p)
     {
         if (p->context->conf->output_char_data())
         {
-            LogCharData(log, p->data, p->dsize);
+            LogCharData(log, p->data, p->dsize, p->context->conf->oneline());
 
             DataPointer file_data = DetectionEngine::get_file_data(p->context);
 
             if ( file_data.len > 0 )
             {
-                TextLog_Print(log, "%s\n", "File data");
-                LogCharData(log, file_data.data, file_data.len);
+                TextLog_Print(log, p->context->conf->oneline() ? "%s " : "%s\n", "File data");
+                LogCharData(log, file_data.data, file_data.len, p->context->conf->oneline());
             }
         }
         else
@@ -1347,7 +1398,7 @@ void LogPayload(TextLog* log, Packet* p)
 
                 if ( file_data.len > 0 )
                 {
-                    TextLog_Print(log, "%s\n", "File data");
+                    TextLog_Print(log, p->context->conf->oneline() ? "%s " : "%s\n", "File data");
                     LogNetData(log, file_data.data, file_data.len, p);
                 }
             }
@@ -1359,4 +1410,3 @@ void LogPayload(TextLog* log, Packet* p)
     }
 }
 } // namespace snort
-

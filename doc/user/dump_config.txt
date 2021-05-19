@@ -75,6 +75,7 @@ Example:
     binder[1].use.inspection_policy="sip.lua"
     output.obfuscate=false
     output.wide_hex_dump=true
+    output.oneline=false
     packets.address_space_agnostic=false
     packets.limit=0
     search_engine.split_any_any=true

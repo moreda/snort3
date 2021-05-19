@@ -1047,6 +1047,8 @@ Configuration:
     (same as -O)
   * bool output.wide_hex_dump = false: output 20 bytes per lines
     instead of 16 when dumping buffers
+  * bool output.oneline = false: condense in one line even when
+    including packet data (nice for SIEM processing of the payload)
 
 
 2.20. packet_tracer
@@ -9434,6 +9436,8 @@ these libraries see the Getting Started section of the manual.
   * bool output.verbose = false: be verbose (same as -v)
   * bool output.wide_hex_dump = false: output 20 bytes per lines
     instead of 16 when dumping buffers
+  * bool output.oneline = false: condense in one line even when
+    including packet data (nice for SIEM processing of the payload)
   * bool packet_capture.enable = false: initially enable packet
     dumping
   * string packet_capture.filter: bpf filter to use for packet dump
@@ -13131,4 +13135,3 @@ and are not applicable elsewhere.
   * search_engine::lowmem: Keyword Trie (low memory, moderate
     performance) MPSE
   * so_rule::3|18758: SO rule example
-

@@ -1070,7 +1070,7 @@ Optional:
   * Now do one of the following:
 
      a. To build with cmake and make, run configure_cmake.sh. It will
-        automatically create and populate a new subdirectory named 
+        automatically create and populate a new subdirectory named
         build.
 
         ./configure_cmake.sh --prefix=$my_path
@@ -1940,7 +1940,7 @@ the default settings use:
 
 appid = { }
 
-To use an AppId as a matching parameter in an IPS rule, use the 
+To use an AppId as a matching parameter in an IPS rule, use the
 appids keyword. For example, to block HTTP traffic that contains a
 specific header:
 
@@ -2553,6 +2553,7 @@ binder[1].use.action="inspect"
 binder[1].use.inspection_policy="sip.lua"
 output.obfuscate=false
 output.wide_hex_dump=true
+output.oneline=false
 packets.address_space_agnostic=false
 packets.limit=0
 search_engine.split_any_any=true
@@ -3408,7 +3409,7 @@ TcpConnector adds a few session setup configuration elements:
     initiate the connection. answer is used to have TcpConnector
     accept incoming connections.
   * address = <addr> - used for call setup to specify the partner
-  * base_port = port - used to contruct the actual port number for 
+  * base_port = port - used to contruct the actual port number for
     call and answer modes. Actual port used is (base_port +
     instance_id).
 
@@ -5579,7 +5580,7 @@ trace =
     }
 }
 
-To create constraints that will never successfully match, set the 
+To create constraints that will never successfully match, set the
 match parameter to false. This is useful for situations where one is
 relying on external packet filtering from the DAQ module, or for
 preventing all trace messages in the context of a packet. The
@@ -6174,9 +6175,9 @@ a DAQ module named pcap.
 
 Some DAQ modules can be further directly configured using DAQ module
 variables. All DAQ module variables come in the form of either just a
-key or a key and a value separated by an equals sign. For example, 
+key or a key and a value separated by an equals sign. For example,
 debug or fanout_type=hash. The command line option for specifying
-these is --daq-var and the configuration file equivalent is the 
+these is --daq-var and the configuration file equivalent is the
 daq.modules[].variables[] property. The available variables for each
 module will be shown when listing the available DAQ modules with
 --daq-list.
@@ -6186,7 +6187,7 @@ readback) is automatically configured based on inferring the mode
 from other Snort configuration. The presence of -r or --pcap-*
 options implies read-file, -i without -Q implies passive, and -i with
 -Q implies inline. The mode can be overridden on a per-DAQ module
-basis with the --daq-mode option on the command line or the 
+basis with the --daq-mode option on the command line or the
 daq.modules[].mode property.
 
 The DAQ module receive timeout is always configured to 1 second. The
@@ -6449,4 +6450,3 @@ x6F 73 74 3A 20 6C 6F 63 61 6C 68 6F 73 74 0D 0A              # ost: localhost..
 A comment indicating packet number and size precedes each packet
 dump. Note that the commands are not applicable in raw mode and have
 no effect.
-
